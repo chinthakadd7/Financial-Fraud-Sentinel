@@ -2,3 +2,5 @@ venv/
 /data/raw/*
 /data/processed/*
 src/models/__pycache__/
+src/data_pipeline/__pycache__/
+tests/__pycache__/
