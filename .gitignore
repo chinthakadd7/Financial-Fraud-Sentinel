@@ -1,7 +1,72 @@
+# Python
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual Environments
 venv/
+env/
+ENV/
+.venv/
+
+# Data files
 /data/raw/*
 /data/processed/*
-src/models/__pycache__/
-src/data_pipeline/__pycache__/
-tests/__pycache__/
+*.csv
+*.parquet
+*.pkl
+*.pickle
+
+# Model artifacts
+/models_artifacts/*
+*.mojo
+*.zip
+*.h5
+*.pt
+*.pth
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# H2O
+h2o_logs/
+h2o-genmodel.jar
+h2odriver.jar
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
 .pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Wave
+www/
+.wave/
+
+# OS
+Thumbs.db
+.DS_Store

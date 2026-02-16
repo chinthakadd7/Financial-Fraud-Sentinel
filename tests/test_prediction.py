@@ -3,10 +3,10 @@ import sys
 import os
 import pytest
 
-# Make src importable
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+# Make src importable - add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from models.predictor import predict_transaction
+from src.models.predictor import predict_transaction
 
 
 def test_predict_transaction_with_sample_data():

@@ -1,11 +1,23 @@
+import sys
+import os
+
+# Add project root to Python path (needed when running from different contexts)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import h2o
 import json
-import os
 import pandas as pd
-from data_pipeline.preprocess import preprocess_input
+import warnings
+from src.data_pipeline.preprocess import preprocess_input
 
-# Initialize H2O once
-h2o.init(max_mem_size="2G")
+# Suppress H2O warnings about missing columns
+warnings.filterwarnings('ignore', category=UserWarning, module='h2o')
+warnings.filterwarnings('ignore', category=Warning, module='h2o')
+
+# Initialize H2O once - start local server
+h2o.init(max_mem_size="2G", start_h2o=True, strict_version_check=False)
 
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -41,7 +53,21 @@ def predict_transaction(transaction: dict):
     preds = model.predict(hf)
     result = preds.as_data_frame()
 
+    # SHAP Contributions
+    contrib = model.predict_contributions(hf)
+    contrib_df = contrib.as_data_frame()
+
+    # Remove bias term
+    contrib_df = contrib_df.drop(columns=["BiasTerm"], errors="ignore")
+
+    # Sort by absolute contribution
+    contrib_series = contrib_df.iloc[0].abs().sort_values(ascending=False)
+
+    # Get top 3 features
+    top_features = contrib_series.head(3)
+
     return {
         "fraud_probability": float(result["p1"][0]),
-        "prediction": int(result["predict"][0])
+        "prediction": int(result["predict"][0]),
+        "top_features": top_features.to_dict()
     }
