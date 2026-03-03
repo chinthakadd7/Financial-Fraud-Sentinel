@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # API Service - FastAPI for fraud predictions
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fraud-sentinel-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Application settings
+      - APP_NAME=Financial Fraud Sentinel API
+      - VERSION=1.0.0
+      - ENVIRONMENT=production
+      - DEBUG=false
+      
+      # API configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - ALLOWED_ORIGINS=http://localhost:10101,http://dashboard:10101
+      
+      # Model configuration
+      - MODEL_PATH=models_artifacts/XGBoost_1_AutoML_1_20260209_165338.zip
+      - MODEL_NAME=XGBoost_1_AutoML_1_20260209_165338
+      
+      # H2O configuration
+      - H2O_MEMORY_GB=2
+      - H2O_PORT=54321
+      - H2O_NTHREADS=-1
+      
+      # Logging
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - LOG_FILE=/app/logs/api.log
+    volumes:
+      # Mount model artifacts (read-only for security)
+      - ./models_artifacts:/app/models_artifacts:ro
+      # Mount logs directory for persistence
+      - api_logs:/app/logs
+    networks:
+      - fraud-sentinel-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+  
+  # ============================================================================
+  # Dashboard Service - H2O Wave UI
+  # ============================================================================
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      args:
+        - API_BASE_URL=http://api:8000
+    container_name: fraud-sentinel-dashboard
+    ports:
+      - "10101:10101"
+    environment:
+      - API_BASE_URL=http://api:8000
+      - H2O_WAVE_ADDRESS=http://0.0.0.0:10101
+    networks:
+      - fraud-sentinel-network
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10101/_f/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  fraud-sentinel-network:
+    driver: bridge
+    name: fraud-sentinel-network
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  api_logs:
+    name: fraud-sentinel-api-logs

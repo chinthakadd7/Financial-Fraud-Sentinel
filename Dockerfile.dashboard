@@ -1,0 +1,72 @@
+# Multi-stage Dockerfile for Fraud Detection Dashboard
+# H2O Wave-based interactive UI
+
+FROM python:3.10-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    H2O_WAVE_MAX_REQUEST_SIZE=5MB \
+    H2O_WAVE_NO_LOG=false
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+# ============================================================================
+# Builder stage
+# ============================================================================
+FROM base as builder
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ============================================================================
+# Runtime stage
+# ============================================================================
+FROM base as runtime
+
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code (only dashboard and utils needed)
+COPY --chown=appuser:appuser src/__init__.py /app/src/
+COPY --chown=appuser:appuser src/dashboard/ /app/src/dashboard/
+COPY --chown=appuser:appuser src/config.py /app/src/
+COPY --chown=appuser:appuser src/utils/ /app/src/utils/
+COPY --chown=appuser:appuser src/api/schemas.py /app/src/api/__init__.py /app/src/api/
+
+# Create .env for configuration
+ARG API_BASE_URL=http://api:8000
+RUN echo "API_BASE_URL=${API_BASE_URL}" > /app/.env && \
+    chown appuser:appuser /app/.env
+
+# Switch to non-root user
+USER appuser
+
+# Expose H2O Wave port
+EXPOSE 10101
+
+# Health check (Wave provides health endpoint)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:10101/_f/ || exit 1
+
+WORKDIR /app
+
+# Run H2O Wave dashboard
+CMD ["wave", "run", "src.dashboard.app"]
