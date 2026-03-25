@@ -1,0 +1,8 @@
+h2o-wave==1.8.0
+httpx==0.28.1
+certifi==2026.1.4
+charset-normalizer==3.4.4
+idna==3.11
+urllib3==2.6.3
+tzdata==2025.3
+wcwidth==0.6.0

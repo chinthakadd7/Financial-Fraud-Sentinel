@@ -1,68 +1,61 @@
-# Multi-stage Dockerfile for Fraud Detection API
-# Optimized for production deployment with minimal image size
+FROM python:3.11-slim-bookworm AS base
 
-FROM python:3.10-slim as base
-
-# Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Install only minimal runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    openjdk-17-jre-headless \
     curl \
+    ca-certificates \
+    libssl-dev \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
+# Create non-root user
 RUN useradd -m -u 1000 appuser && \
     mkdir -p /app /app/logs && \
     chown -R appuser:appuser /app
 
 WORKDIR /app
 
-# ============================================================================
-# Builder stage - install dependencies
-# ============================================================================
-FROM base as builder
+ 
+FROM base AS builder
 
-# Copy requirements first (better layer caching)
-COPY requirements.txt .
+# Install build tools ONLY here (not in final image)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.api.txt .
 
-# ============================================================================
-# Runtime stage - copy only what's needed
-# ============================================================================
-FROM base as runtime
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    pip install --prefer-binary --default-timeout=180 --retries=5 -r requirements.api.txt
 
-# Copy Python packages from builder
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+ 
+FROM base AS runtime
+
+# Copy installed packages (FIXED path)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
+# Copy app code
 COPY --chown=appuser:appuser src/ /app/src/
 COPY --chown=appuser:appuser models_artifacts/ /app/models_artifacts/
 
-# Create .env placeholder (override with docker-compose or -e flags)
+# Environment file
 RUN echo "API_HOST=0.0.0.0\nAPI_PORT=8000\nLOG_LEVEL=INFO" > /app/.env && \
     chown appuser:appuser /app/.env
 
-# Switch to non-root user
 USER appuser
 
-# Expose API port
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Set working directory
-WORKDIR /app
-
-# Run API server
 CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

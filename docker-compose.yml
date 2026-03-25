@@ -1,9 +1,7 @@
 version: '3.8'
 
 services:
-  # ============================================================================
-  # API Service - FastAPI for fraud predictions
-  # ============================================================================
+
   api:
     build:
       context: .
@@ -11,6 +9,7 @@ services:
     container_name: fraud-sentinel-api
     ports:
       - "8000:8000"
+
     environment:
       # Application settings
       - APP_NAME=Financial Fraud Sentinel API
@@ -27,8 +26,8 @@ services:
       - MODEL_PATH=models_artifacts/XGBoost_1_AutoML_1_20260209_165338.zip
       - MODEL_NAME=XGBoost_1_AutoML_1_20260209_165338
       
-      # H2O configuration
-      - H2O_MEMORY_GB=2
+      # H2O configuration (prevent OOM)
+      - H2O_MEMORY_GB=1
       - H2O_PORT=54321
       - H2O_NTHREADS=-1
       
@@ -36,76 +35,77 @@ services:
       - LOG_LEVEL=INFO
       - LOG_FORMAT=json
       - LOG_FILE=/app/logs/api.log
+
     volumes:
-      # Mount model artifacts (read-only for security)
       - ./models_artifacts:/app/models_artifacts:ro
-      # Mount logs directory for persistence
       - api_logs:/app/logs
+
     networks:
       - fraud-sentinel-network
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 3G
-        reservations:
-          cpus: '1.0'
-          memory: 2G
-  
-  # ============================================================================
-  # Dashboard Service - H2O Wave UI
-  # ============================================================================
+
+    mem_limit: 3g
+    cpus: 2.0
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+ 
   dashboard:
     build:
       context: .
       dockerfile: Dockerfile.dashboard
       args:
         - API_BASE_URL=http://api:8000
+
     container_name: fraud-sentinel-dashboard
     ports:
       - "10101:10101"
+
     environment:
       - API_BASE_URL=http://api:8000
       - H2O_WAVE_ADDRESS=http://0.0.0.0:10101
+
     networks:
       - fraud-sentinel-network
+
     depends_on:
       api:
         condition: service_healthy
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:10101/_f/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:10101/_f/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
 
-# ============================================================================
-# Networks
-# ============================================================================
+    restart: unless-stopped
+
+    mem_limit: 1g
+    cpus: 1.0
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
 networks:
   fraud-sentinel-network:
     driver: bridge
-    name: fraud-sentinel-network
 
-# ============================================================================
-# Volumes
-# ============================================================================
 volumes:
   api_logs:
-    name: fraud-sentinel-api-logs
