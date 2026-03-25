@@ -19,12 +19,9 @@ A production-ready fraud detection platform leveraging H2O AutoML, FastAPI, and 
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [API Documentation](#-api-documentation)
-- [Configuration](#-configuration)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
 - [Project Structure](#-project-structure)
-- [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
@@ -72,8 +69,6 @@ A production-ready fraud detection platform leveraging H2O AutoML, FastAPI, and 
 - **Dashboard → API**: Async HTTP calls via httpx
 - **API → Model**: Direct Python integration with H2O predictor
 - **Model → H2O**: MOJO model loading and prediction
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design documentation.
 
 ---
 
@@ -220,8 +215,7 @@ async def predict_fraud():
    - Risk level (LOW/MEDIUM/HIGH)
    - Top contributing features (SHAP)
    - Recommendations
-
----
+<img width="1920" height="1020" alt="wave_dashboard" src="https://github.com/user-attachments/assets/90fcf785-5c71-4b13-b431-131bae9894fe" />
 
 ## 📚 API Documentation
 
@@ -253,38 +247,7 @@ async def predict_fraud():
 }
 ```
 
-For complete API documentation, see [docs/API.md](docs/API.md) or visit `/docs` when API is running.
-
----
-
-## ⚙️ Configuration
-
-Configuration is managed via environment variables (12-factor app methodology).
-
-### Key Configuration Options
-
-```bash
-# Application
-APP_NAME=Financial Fraud Sentinel
-ENVIRONMENT=development  # development, staging, production
-
-# API
-API_HOST=0.0.0.0
-API_PORT=8000
-
-# Model
-MODEL_PATH=models_artifacts/XGBoost_1_AutoML_1_20260209_165338.zip
-
-# H2O
-H2O_MEMORY_GB=2
-H2O_PORT=54321
-
-# Logging
-LOG_LEVEL=INFO
-LOG_FORMAT=json
-```
-
-See [.env.example](.env.example) for all available options.
+For complete API documentation, visit `/docs` when API is running.
 
 ---
 
@@ -340,17 +303,6 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Production Considerations
-
-1. **Environment Variables**: Use secrets management (AWS Secrets Manager, Azure Key Vault)
-2. **Resource Limits**: Configure memory/CPU limits in docker-compose.yml
-3. **Health Checks**: Configure load balancer to use `/health` endpoint
-4. **Logging**: Forward logs to centralized logging (ELK, CloudWatch)
-5. **Monitoring**: Add Prometheus metrics and Grafana dashboards
-6. **Scaling**: Use Kubernetes for horizontal scaling
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment guide.
-
 ---
 
 ## 📁 Project Structure
@@ -394,16 +346,6 @@ financial-fraud-sentinel/
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ### Development Setup
 ```powershell
 # Install dev dependencies
@@ -418,29 +360,12 @@ flake8 src/ tests/
 mypy src/
 ```
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 🙏 Acknowledgments
 
 - **H2O.ai**: For the AutoML framework and MOJO deployment
 - **FastAPI**: For the excellent API framework
 - **H2O Wave**: For the modern dashboard framework
 - **SHAP**: For explainable AI capabilities
-
----
-
-## 📞 Support
-
-For issues, questions, or contributions:
-- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
-- **Documentation**: [docs/](docs/)
-- **API Docs**: http://localhost:8000/docs (when running)
 
 ---
 
