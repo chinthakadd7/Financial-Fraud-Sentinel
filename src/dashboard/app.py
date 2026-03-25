@@ -325,7 +325,7 @@ async def serve(q: Q):
                 # Enhanced SHAP visualization
                 q.page['shap_chart'] = ui.plot_card(
                     box='bottom',
-                    title='🎯 Top Contributing Features (SHAP Analysis)',
+                    title='Top Contributing Features (SHAP Analysis)',
                     data=shap_data,
                     plot=ui.plot([
                         ui.mark(
@@ -347,7 +347,7 @@ async def serve(q: Q):
                 q.page['insights'] = ui.form_card(
                     box='bottom',
                     items=[
-                        ui.text_xl('📊 **Key Insights**'),
+                        ui.text_xl('**Key Insights**'),
                         ui.separator(),
                         ui.text_l(f'🔑 **Most Influential Feature:** {top_feature}'),
                         ui.text(f'Impact Score: {abs(top_importance):.4f}'),
